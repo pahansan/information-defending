@@ -21,12 +21,12 @@ int64_t modExp(int64_t a, int64_t x, int64_t p)
 static std::random_device dev;
 static std::mt19937_64 gen{dev()};
 
-int testFerma(int64_t a, int64_t p)
+bool testFerma(int64_t a, int64_t p)
 {
     if (a >= p)
-        return -1;
+        return false;
 
-    return modExp(a, p - 1, p) == 1 ? 0 : 1;
+    return modExp(a, p - 1, p) == 1;
 }
 
 bool isProbablyPrime(int64_t x)
@@ -40,7 +40,7 @@ bool isProbablyPrime(int64_t x)
         int64_t a = dis(gen);
         if (a % x == 0)
             continue;
-        if (testFerma(a, x) == 0)
+        if (!testFerma(a, x))
             return false;
     }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"2lab/pkg/crypto"
+	"2lab/internal/crypto"
 	"fmt"
 )
 

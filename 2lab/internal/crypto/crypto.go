@@ -143,3 +143,14 @@ func BSGS(a, y, p int64) []int64 {
 
 	return answer
 }
+
+func RandBSGS() ([]int64, int64, int64, int64) {
+	a := generatePrime()
+	p := generatePrime()
+	for a >= p {
+		a = generatePrime()
+	}
+	y := randInt64(1, p-1)
+	result := BSGS(a, y, p)
+	return result, a, y, p
+}

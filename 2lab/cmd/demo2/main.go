@@ -20,5 +20,5 @@ func main() {
 	fmt.Scan(&a)
 	fmt.Scan(&y)
 	fmt.Scan(&p)
-	fmt.Println(crypto.BSGS(a, y, p))
+	fmt.Printf("%d^x %% %d = %d, x = %d\n", a, p, y, crypto.BSGS(a, y, p))
 }

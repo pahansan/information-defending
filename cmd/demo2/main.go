@@ -1,8 +1,8 @@
 package main
 
 import (
-	"3lab/internal/crypto"
 	"fmt"
+	"information-defending/internal/crypto"
 )
 
 func main() {

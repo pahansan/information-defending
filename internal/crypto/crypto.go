@@ -238,7 +238,7 @@ func ShamirEnDeCrypt(k1, k2, p int64, m []byte) []byte {
 	}
 
 	x1 := ModExpArray(m, k1, p)
-	return ModExpArray(x1, k1, p)
+	return ModExpArray(x1, k2, p)
 }
 
 func ShamirEnDeCryptFile(input, output string, k1, k2, p int64) error {

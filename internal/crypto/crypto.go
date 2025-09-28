@@ -3,6 +3,7 @@ package crypto
 import (
 	"math"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -98,11 +99,14 @@ func ExtendedGCDRandoms() (int64, int64, int64, int64, int64) {
 	return a, b, u1, u2, u3
 }
 
-func generatePrime() int64 {
-	x := randInt64(2, 1000)
+func generatePrime(lb, ub int64) int64 {
+	if lb < 2 || ub < 3 {
+		return 0
+	}
 
+	x := randInt64(lb, ub)
 	for !IsProbablyPrime(x) {
-		x = randInt64(2, 1000)
+		x = randInt64(lb, ub)
 	}
 
 	return x
@@ -110,10 +114,10 @@ func generatePrime() int64 {
 
 func ExtendedGCDPrimes() (int64, int64, int64, int64, int64) {
 	var a int64
-	b := generatePrime()
+	b := generatePrime(2, 1000)
 
 	for a < b {
-		a = generatePrime()
+		a = generatePrime(2, 1000)
 	}
 
 	u1, u2, u3 := ExtendedGCD(a, b)
@@ -145,10 +149,10 @@ func BSGS(a, y, p int64) []int64 {
 }
 
 func RandBSGS() ([]int64, int64, int64, int64) {
-	a := generatePrime()
-	p := generatePrime()
+	a := generatePrime(2, 1000)
+	p := generatePrime(2, 1000)
 	for a >= p {
-		a = generatePrime()
+		a = generatePrime(2, 1000)
 	}
 	y := randInt64(1, p-1)
 	result := BSGS(a, y, p)
@@ -156,11 +160,11 @@ func RandBSGS() ([]int64, int64, int64, int64) {
 }
 
 func generateP() int64 {
-	q := generatePrime()
+	q := generatePrime(2, 1000)
 	p := 2*q + 1
 
 	for !IsProbablyPrime(p) {
-		q = generatePrime()
+		q = generatePrime(2, 1000)
 		p = 2*q + 1
 	}
 
@@ -201,4 +205,49 @@ func RandDiffieHellman() (int64, int64, int64, int64, int64) {
 	K := DiffieHellman(p, g, a, b)
 
 	return p, g, a, b, K
+}
+
+func ModExpArray(a []byte, x, p int64) []byte {
+	result := make([]byte, len(a))
+	for i, b := range a {
+		result[i] = byte(ModExp(int64(b), x, p))
+	}
+	return result
+}
+
+func GeneratePInBounds(lb, ub int64) int64 {
+	return generatePrime(lb, ub)
+}
+
+func GenerateShamirKeys(p int64) (int64, int64, int64, int64) {
+	if p < 2 {
+		return 0, 0, 0, 0
+	}
+
+	ca := generatePrime(2, 1000)
+	cb := generatePrime(2, 1000)
+	_, da, _ := ExtendedGCD(ca, p-1)
+	_, db, _ := ExtendedGCD(cb, p-1)
+
+	return ca, da, cb, db
+}
+
+func ShamirEnDeCrypt(k1, k2, p int64, m []byte) []byte {
+	if p <= int64(^uint8(0)) {
+		return nil
+	}
+
+	x1 := ModExpArray(m, k1, p)
+	return ModExpArray(x1, k1, p)
+}
+
+func ShamirEnDeCryptFile(input, output string, k1, k2, p int64) error {
+	fileBytes, err := os.ReadFile(input)
+	if err != nil {
+		return err
+	}
+
+	data := ShamirEnDeCrypt(k1, k2, p, fileBytes)
+	err = os.WriteFile(output, data, 0644)
+	return err
 }

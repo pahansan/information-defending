@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"math"
+	"math/big"
 	"math/rand"
 	"os"
 	"time"
@@ -224,21 +225,37 @@ func GenerateShamirKeys(p int64) (int64, int64, int64, int64) {
 		return 0, 0, 0, 0
 	}
 
-	ca := generatePrime(2, 1000)
-	cb := generatePrime(2, 1000)
-	_, da, _ := ExtendedGCD(ca, p-1)
-	_, db, _ := ExtendedGCD(cb, p-1)
+	var ca, cb, da, db, g int64
+
+	for {
+		ca = generatePrime(2, 1000)
+		g, da, _ = ExtendedGCD(ca, p-1)
+		if g == 1 {
+			da = (da%(p-1) + (p - 1)) % (p - 1)
+			break
+		}
+	}
+
+	for {
+		cb = generatePrime(2, 1000)
+		g, db, _ = ExtendedGCD(cb, p-1)
+		if g == 1 {
+			db = (db%(p-1) + (p - 1)) % (p - 1)
+			break
+		}
+	}
 
 	return ca, da, cb, db
 }
 
-func ShamirEnDeCrypt(k1, k2, p int64, m []byte) []byte {
+func ShamirEnDeCrypt(k1, k2, p int64, data []byte) []byte {
 	if p <= int64(^uint8(0)) {
 		return nil
 	}
-
-	x1 := ModExpArray(m, k1, p)
-	return ModExpArray(x1, k2, p)
+	m := new(big.Int).SetBytes(data)
+	c := new(big.Int).Exp(m, big.NewInt(k1), big.NewInt(p))
+	c.Exp(c, big.NewInt(k2), big.NewInt(p))
+	return c.Bytes()
 }
 
 func ShamirEnDeCryptFile(input, output string, k1, k2, p int64) error {

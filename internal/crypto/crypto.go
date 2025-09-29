@@ -1,10 +1,13 @@
 package crypto
 
 import (
+	"bufio"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -208,63 +211,40 @@ func RandDiffieHellman() (int64, int64, int64, int64, int64) {
 	return p, g, a, b, K
 }
 
-func ModExpArray(a []byte, x, p int64) []byte {
-	result := make([]byte, len(a))
-	for i, b := range a {
-		result[i] = byte(ModExp(int64(b), x, p))
-	}
-	return result
-}
-
 func GeneratePInBounds(lb, ub int64) int64 {
 	return generatePrime(lb, ub)
 }
 
-func GenerateShamirKeys(p int64) (int64, int64, int64, int64) {
-	if p < 2 {
-		return 0, 0, 0, 0
+func Gcd(a, b *big.Int) *big.Int {
+	zero := big.NewInt(0)
+	for b.Cmp(zero) != 0 {
+		a, b = b, new(big.Int).Mod(a, b)
 	}
-
-	var ca, cb, da, db, g int64
-
-	for {
-		ca = generatePrime(2, 1000)
-		g, da, _ = ExtendedGCD(ca, p-1)
-		if g == 1 {
-			da = (da%(p-1) + (p - 1)) % (p - 1)
-			break
-		}
-	}
-
-	for {
-		cb = generatePrime(2, 1000)
-		g, db, _ = ExtendedGCD(cb, p-1)
-		if g == 1 {
-			db = (db%(p-1) + (p - 1)) % (p - 1)
-			break
-		}
-	}
-
-	return ca, da, cb, db
+	return a
 }
 
-func ShamirEnDeCrypt(k1, k2, p int64, data []byte) []byte {
-	if p <= int64(^uint8(0)) {
+func ModInverse(a, m *big.Int) *big.Int {
+	g := new(big.Int)
+	x := new(big.Int)
+	y := new(big.Int)
+
+	g.GCD(x, y, a, m)
+	if g.Cmp(big.NewInt(1)) != 0 {
 		return nil
 	}
-	m := new(big.Int).SetBytes(data)
-	c := new(big.Int).Exp(m, big.NewInt(k1), big.NewInt(p))
-	c.Exp(c, big.NewInt(k2), big.NewInt(p))
-	return c.Bytes()
+	return x.Mod(x, m)
 }
 
-func ShamirEnDeCryptFile(input, output string, k1, k2, p int64) error {
-	fileBytes, err := os.ReadFile(input)
-	if err != nil {
-		return err
+func ReadBigInt(prompt string) *big.Int {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print(prompt)
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		val, ok := new(big.Int).SetString(text, 10)
+		if ok {
+			return val
+		}
+		fmt.Println("Ошибка: введите целое число")
 	}
-
-	data := ShamirEnDeCrypt(k1, k2, p, fileBytes)
-	err = os.WriteFile(output, data, 0644)
-	return err
 }

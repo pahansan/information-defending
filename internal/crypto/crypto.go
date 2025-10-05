@@ -36,7 +36,7 @@ func testFerma(a, p int64) bool {
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-func randInt64(min, max int64) int64 {
+func RandInt64(min, max int64) int64 {
 	return min + r.Int63n(max-min)
 }
 
@@ -53,7 +53,7 @@ func IsProbablyPrime(x int64) bool {
 	iters := int64(100)
 
 	for i := int64(0); i < iters && i < x; i++ {
-		a := randInt64(2, x-1)
+		a := RandInt64(2, x-1)
 		if a%x == 0 {
 			continue
 		}
@@ -92,10 +92,10 @@ func ExtendedGCD(a, b int64) (int64, int64, int64) {
 
 func ExtendedGCDRandoms() (int64, int64, int64, int64, int64) {
 	var a int64
-	b := randInt64(1, 1000)
+	b := RandInt64(1, 1000)
 
 	for a < b {
-		a = randInt64(1, 1000)
+		a = RandInt64(1, 1000)
 	}
 
 	u1, u2, u3 := ExtendedGCD(a, b)
@@ -108,9 +108,9 @@ func generatePrime(lb, ub int64) int64 {
 		return 0
 	}
 
-	x := randInt64(lb, ub)
+	x := RandInt64(lb, ub)
 	for !IsProbablyPrime(x) {
-		x = randInt64(lb, ub)
+		x = RandInt64(lb, ub)
 	}
 
 	return x
@@ -158,28 +158,28 @@ func RandBSGS() ([]int64, int64, int64, int64) {
 	for a >= p {
 		a = generatePrime(2, 1000)
 	}
-	y := randInt64(1, p-1)
+	y := RandInt64(1, p-1)
 	result := BSGS(a, y, p)
 	return result, a, y, p
 }
 
-func generateP() int64 {
-	q := generatePrime(2, 1000)
+func GenerateP() int64 {
+	q := generatePrime(257, 1000)
 	p := 2*q + 1
 
 	for !IsProbablyPrime(p) {
-		q = generatePrime(2, 1000)
+		q = generatePrime(257, 1000)
 		p = 2*q + 1
 	}
 
 	return p
 }
 
-func generateG(p int64) int64 {
+func GenerateG(p int64) int64 {
 	q := (p - 1) / 2
-	g := randInt64(2, p-1)
+	g := RandInt64(2, p-1)
 	for ModExp(g, q, p) == 1 {
-		g = randInt64(2, p-1)
+		g = RandInt64(2, p-1)
 	}
 	return g
 }
@@ -198,12 +198,12 @@ func DiffieHellman(p, g, a, b int64) int64 {
 }
 
 func RandDiffieHellman() (int64, int64, int64, int64, int64) {
-	p := generateP()
-	g := generateG(p)
-	a := randInt64(2, 100)
-	b := randInt64(2, 100)
+	p := GenerateP()
+	g := GenerateG(p)
+	a := RandInt64(2, 100)
+	b := RandInt64(2, 100)
 	for b == a {
-		b = randInt64(2, 100)
+		b = RandInt64(2, 100)
 	}
 
 	K := DiffieHellman(p, g, a, b)

@@ -21,7 +21,7 @@ func main() {
 	fmt.Printf("p = %d g = %d\n", p, g)
 	fmt.Printf("B: (cb=%d, db=%d)\n", Cb, Db)
 
-	// Абонент A генерит ключ k [2, p-1)
+	// Абонент A генерит случайно число k [2, p-1)
 	k := big.NewInt(crypto.RandInt64(2, p.Int64()-1))
 	fmt.Printf("k = %d\n", k)
 

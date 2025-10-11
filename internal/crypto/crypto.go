@@ -103,7 +103,7 @@ func ExtendedGCDRandoms() (int64, int64, int64, int64, int64) {
 	return a, b, u1, u2, u3
 }
 
-func generatePrime(lb, ub int64) int64 {
+func GeneratePrime(lb, ub int64) int64 {
 	if lb < 2 || ub < 3 {
 		return 0
 	}
@@ -118,10 +118,10 @@ func generatePrime(lb, ub int64) int64 {
 
 func ExtendedGCDPrimes() (int64, int64, int64, int64, int64) {
 	var a int64
-	b := generatePrime(2, 1000)
+	b := GeneratePrime(2, 1000)
 
 	for a < b {
-		a = generatePrime(2, 1000)
+		a = GeneratePrime(2, 1000)
 	}
 
 	u1, u2, u3 := ExtendedGCD(a, b)
@@ -153,10 +153,10 @@ func BSGS(a, y, p int64) []int64 {
 }
 
 func RandBSGS() ([]int64, int64, int64, int64) {
-	a := generatePrime(2, 1000)
-	p := generatePrime(2, 1000)
+	a := GeneratePrime(2, 1000)
+	p := GeneratePrime(2, 1000)
 	for a >= p {
-		a = generatePrime(2, 1000)
+		a = GeneratePrime(2, 1000)
 	}
 	y := RandInt64(1, p-1)
 	result := BSGS(a, y, p)
@@ -164,11 +164,11 @@ func RandBSGS() ([]int64, int64, int64, int64) {
 }
 
 func GenerateP() int64 {
-	q := generatePrime(257, 1000)
+	q := GeneratePrime(257, 1000)
 	p := 2*q + 1
 
 	for !IsProbablyPrime(p) {
-		q = generatePrime(257, 1000)
+		q = GeneratePrime(257, 1000)
 		p = 2*q + 1
 	}
 
@@ -212,7 +212,7 @@ func RandDiffieHellman() (int64, int64, int64, int64, int64) {
 }
 
 func GeneratePInBounds(lb, ub int64) int64 {
-	return generatePrime(lb, ub)
+	return GeneratePrime(lb, ub)
 }
 
 func Gcd(a, b *big.Int) *big.Int {

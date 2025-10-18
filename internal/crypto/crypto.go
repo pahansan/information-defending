@@ -197,6 +197,10 @@ func DiffieHellman(p, g, a, b int64) int64 {
 	return -1
 }
 
+func DiffieHellmanByte(p, g, a, b int64) byte {
+	return byte(DiffieHellman(p, g, a, b))
+}
+
 func RandDiffieHellman() (int64, int64, int64, int64, int64) {
 	p := GenerateP()
 	g := GenerateG(p)
@@ -209,6 +213,11 @@ func RandDiffieHellman() (int64, int64, int64, int64, int64) {
 	K := DiffieHellman(p, g, a, b)
 
 	return p, g, a, b, K
+}
+
+func RandDiffieHellmanByte() (int64, int64, int64, int64, byte) {
+	p, g, a, b, k := RandDiffieHellman()
+	return p, g, a, b, byte(k)
 }
 
 func GeneratePInBounds(lb, ub int64) int64 {

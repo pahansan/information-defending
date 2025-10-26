@@ -29,7 +29,12 @@ func GenerateKeys() Keys {
 	}
 	N := new(big.Int).Mul(P, Q)
 	phi := new(big.Int).Mul(P.Sub(P, big.NewInt(1)), Q.Sub(Q, big.NewInt(1)))
-	for d.Cmp(phi) != -1 {
+	gcd := new(big.Int)
+	for {
+		gcd.GCD(nil, nil, d, phi)
+		if gcd.Cmp(big.NewInt(1)) == 0 {
+			break
+		}
 		d, err = rand.Prime(rand.Reader, 1024)
 		if err != nil {
 			log.Fatalf("Something went wrong:%s", err.Error())

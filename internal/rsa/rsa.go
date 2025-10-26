@@ -1,7 +1,8 @@
 package rsa
 
 import (
-	"information-defending/internal/crypto"
+	"crypto/rand"
+	"log"
 	"math/big"
 	"os"
 	"strings"
@@ -14,13 +15,25 @@ type Keys struct {
 }
 
 func GenerateKeys() Keys {
-	P := big.NewInt(crypto.GeneratePrime(2, 1000000))
-	Q := big.NewInt(crypto.GeneratePrime(2, 1000000))
+	P, err := rand.Prime(rand.Reader, 1024)
+	if err != nil {
+		log.Fatalf("Something went wrong:%s", err.Error())
+	}
+	Q, err := rand.Prime(rand.Reader, 1024)
+	if err != nil {
+		log.Fatalf("Something went wrong:%s", err.Error())
+	}
+	d, err := rand.Prime(rand.Reader, 1024)
+	if err != nil {
+		log.Fatalf("Something went wrong:%s", err.Error())
+	}
 	N := new(big.Int).Mul(P, Q)
 	phi := new(big.Int).Mul(P.Sub(P, big.NewInt(1)), Q.Sub(Q, big.NewInt(1)))
-	d := big.NewInt(crypto.GeneratePrime(2, 1000000))
 	for d.Cmp(phi) != -1 {
-		d = big.NewInt(crypto.GeneratePrime(2, 1000000))
+		d, err = rand.Prime(rand.Reader, 1024)
+		if err != nil {
+			log.Fatalf("Something went wrong:%s", err.Error())
+		}
 	}
 	c := new(big.Int).ModInverse(d, phi)
 
@@ -37,6 +50,10 @@ func Encrypt(m, d, N *big.Int) *big.Int {
 }
 
 func Decrypt(e, c, N *big.Int) *big.Int {
+	if e.Cmp(N) != -1 {
+		return nil
+	}
+
 	m := new(big.Int).Exp(e, c, N)
 	return m
 }

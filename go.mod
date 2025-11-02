@@ -1,3 +1,5 @@
 module information-defending
 
 go 1.25.1
+
+require github.com/ftomza/gogost v0.0.0-20200923131839-93b36ba10d5f // indirect

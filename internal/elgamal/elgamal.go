@@ -20,131 +20,100 @@ type Sign struct {
 }
 
 func GenerateP() (*big.Int, error) {
-	q, err := rand.Prime(rand.Reader, 256)
-	if err != nil {
-		return nil, err
-	}
-	doubleQ := q.Mul(q, big.NewInt(2))
-	doubleQPlus1 := doubleQ.Add(doubleQ, big.NewInt(1))
-	for !doubleQPlus1.ProbablyPrime(20) {
+	for {
 		q, err := rand.Prime(rand.Reader, 256)
 		if err != nil {
 			return nil, err
 		}
-		doubleQ = q.Mul(q, big.NewInt(2))
-		doubleQPlus1 = doubleQ.Add(doubleQ, big.NewInt(1))
+		doubleQ := q.Mul(q, big.NewInt(2))
+		doubleQPlus1 := doubleQ.Add(doubleQ, big.NewInt(1))
+		if doubleQPlus1.ProbablyPrime(200) {
+			return q, nil
+		}
 	}
-	return doubleQPlus1, nil
 }
 
 func GenerateG(p *big.Int) (*big.Int, error) {
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-	q := new(big.Int).Set(pMinus1)
-	q = q.Div(q, big.NewInt(2))
-	tmp, err := rand.Int(rand.Reader, pMinus1)
-	g := new(big.Int).Set(tmp)
-	if err != nil {
-		return nil, err
-	}
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+	q := new(big.Int).Div(pMinus1, big.NewInt(2))
 	one := big.NewInt(1)
-	// while g <= 1 && g >= p - 1 && g^^q mod p == 1
-	for tmp.Cmp(one) != 1 && tmp.Exp(tmp, q, p).Cmp(one) == 0 {
+
+	for {
 		tmp, err := rand.Int(rand.Reader, pMinus1)
-		g.Set(tmp)
 		if err != nil {
 			return nil, err
 		}
+		g := new(big.Int).Set(tmp)
+		if tmp.Cmp(one) == 1 && tmp.Exp(tmp, q, p).Cmp(one) != 0 {
+			return g, nil
+		}
 	}
-	return g, nil
 }
 
 func GenerateX(p *big.Int) (*big.Int, error) {
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-	x, err := rand.Int(rand.Reader, pMinus1)
-	if err != nil {
-		return nil, err
-	}
-	for x.Cmp(big.NewInt(0)) == 0 {
-		x, err = rand.Int(rand.Reader, pMinus1)
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+
+	for {
+		x, err := rand.Int(rand.Reader, pMinus1)
 		if err != nil {
 			return nil, err
 		}
+		if x.Cmp(big.NewInt(0)) != 0 {
+			return x, nil
+		}
 	}
-	return x, nil
 }
 
 func GenerateY(g, x, p *big.Int) *big.Int {
-	y := new(big.Int).Exp(g, x, p)
-	return y
+	return new(big.Int).Exp(g, x, p)
 }
 
 func generateK(p *big.Int) (*big.Int, error) {
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-	k, err := rand.Int(rand.Reader, pMinus1)
-	if err != nil {
-		return nil, err
-	}
-	for k.Cmp(big.NewInt(0)) == 0 {
-		k, err = rand.Int(rand.Reader, pMinus1)
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+
+	for {
+		k, err := rand.Int(rand.Reader, pMinus1)
 		if err != nil {
 			return nil, err
 		}
+		if k.Cmp(big.NewInt(1)) == 1 && new(big.Int).GCD(nil, nil, k, pMinus1).Cmp(big.NewInt(1)) == 0 {
+			return k, nil
+		}
 	}
-	return k, nil
 }
 
 func modInverseK(k, p *big.Int) *big.Int {
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-	inverseK := new(big.Int).Set(k)
-	inverseK = inverseK.ModInverse(inverseK, pMinus1)
-	return inverseK
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+	return new(big.Int).ModInverse(k, pMinus1)
 }
 
 func countR(g, k, p *big.Int) *big.Int {
-	r := new(big.Int).Exp(g, k, p)
-	return r
+	return new(big.Int).Exp(g, k, p)
 }
 
 func countU(h, x, r, p *big.Int) *big.Int {
-	xr := new(big.Int).Set(x)
-	xr = xr.Mul(xr, r)
-
-	hMinusXR := new(big.Int).Set(h)
-	hMinusXR = hMinusXR.Sub(hMinusXR, xr)
-
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-
-	u := new(big.Int).Set(hMinusXR)
-	u = u.Mod(u, pMinus1)
-	return u
+	xr := new(big.Int).Mul(x, r)
+	hMinusXR := new(big.Int).Sub(h, xr)
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+	return new(big.Int).Mod(hMinusXR, pMinus1)
 }
 
 func countS(k, u, p *big.Int) *big.Int {
 	inverseK := modInverseK(k, p)
-
-	ku := new(big.Int).Set(inverseK)
-	ku = ku.Mul(ku, u)
-
-	pMinus1 := new(big.Int).Set(p)
-	pMinus1 = pMinus1.Sub(pMinus1, big.NewInt(1))
-
-	s := new(big.Int).Set(ku)
-	s = s.Mod(s, pMinus1)
-
-	return s
+	ku := new(big.Int).Mul(inverseK, u)
+	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+	return new(big.Int).Mod(ku, pMinus1)
 }
 
-func CountSign(keys *Keys, h *big.Int) *Sign {
-	k, _ := generateK(keys.P)
+func CountSign(keys *Keys, h *big.Int) (*Sign, error) {
+	k, err := generateK(keys.P)
+	if err != nil {
+		return nil, err
+	}
 	r := countR(keys.G, k, keys.P)
 	u := countU(h, keys.X, r, keys.P)
 	s := countS(k, u, keys.P)
-	return &Sign{R: r, S: s}
+	return &Sign{R: r, S: s}, nil
 }
 
 func CheckSign(sign *Sign, h, y, g, p *big.Int) bool {

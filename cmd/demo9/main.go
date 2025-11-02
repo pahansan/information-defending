@@ -68,11 +68,16 @@ func printUsage() {
 
 func generateKeys(keyFile string) {
 	fmt.Println("Generating Elgamal keys...")
-	keys, _ := elgamal.GenerateKeys()
+	keys, err := elgamal.GenerateKeys()
+	if err != nil {
+		log.Fatalf("Error generating keys: %v", err)
+		return
+	}
 
-	err := saveKeys(keys, keyFile)
+	err = saveKeys(keys, keyFile)
 	if err != nil {
 		log.Fatalf("Error saving keys: %v", err)
+		return
 	}
 
 	fmt.Printf("Keys saved to %s.pub and %s.priv\n", keyFile, keyFile)
@@ -88,11 +93,13 @@ func signFile(inputFile, outputFile, keyFile string) {
 	privKey, err := loadPrivateKey(keyFile + ".priv")
 	if err != nil {
 		log.Fatalf("Error loading private key: %v", err)
+		return
 	}
 
 	pubKey, err := loadPublicKey(keyFile + ".pub")
 	if err != nil {
 		log.Fatalf("Error loading public key: %v", err)
+		return
 	}
 
 	keys := elgamal.Keys{P: pubKey.P, G: pubKey.G, Y: pubKey.Y, X: privKey.X}
@@ -100,17 +107,23 @@ func signFile(inputFile, outputFile, keyFile string) {
 	data, err := os.ReadFile(inputFile)
 	if err != nil {
 		log.Fatalf("Error reading file: %v", err)
+		return
 	}
 
 	hash := sha256.Sum256(data)
 	h := new(big.Int).SetBytes(hash[:])
 
-	sign := elgamal.CountSign(&keys, h)
+	sign, err := elgamal.CountSign(&keys, h)
+	if err != nil {
+		log.Fatalf("Error while counting sign")
+		return
+	}
 
 	signData := fmt.Sprintf("%s\n%s", sign.R.String(), sign.S.String())
 	err = os.WriteFile(outputFile, []byte(signData), 0644)
 	if err != nil {
 		log.Fatalf("Error writing signature: %v", err)
+		return
 	}
 
 	fmt.Printf("Signature saved to: %s\n", outputFile)
@@ -123,16 +136,19 @@ func verifySignature(inputFile, signatureFile, keyFile string) {
 	pubKey, err := loadPublicKey(keyFile + ".pub")
 	if err != nil {
 		log.Fatalf("Error loading public key: %v", err)
+		return
 	}
 
 	data, err := os.ReadFile(inputFile)
 	if err != nil {
 		log.Fatalf("Error reading file: %v", err)
+		return
 	}
 
 	sign, err := loadSign(signatureFile)
 	if err != nil {
 		log.Fatalf("Error reading signature: %v", err)
+		return
 	}
 
 	hash := sha256.Sum256(data)
@@ -186,9 +202,18 @@ func loadPublicKey(filename string) (*PublicKey, error) {
 		return nil, err
 	}
 
-	p, _ := new(big.Int).SetString(pStr, 10)
-	g, _ := new(big.Int).SetString(gStr, 10)
-	y, _ := new(big.Int).SetString(yStr, 10)
+	p, ok := new(big.Int).SetString(pStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading pStr")
+	}
+	g, ok := new(big.Int).SetString(gStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading gStr")
+	}
+	y, ok := new(big.Int).SetString(yStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading yStr")
+	}
 
 	return &PublicKey{P: p, G: g, Y: y}, nil
 }
@@ -205,7 +230,10 @@ func loadPrivateKey(filename string) (*PrivateKey, error) {
 		return nil, err
 	}
 
-	x, _ := new(big.Int).SetString(xStr, 10)
+	x, ok := new(big.Int).SetString(xStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading xStr")
+	}
 
 	return &PrivateKey{X: x}, nil
 }
@@ -222,8 +250,14 @@ func loadSign(filename string) (*elgamal.Sign, error) {
 		return nil, err
 	}
 
-	r, _ := new(big.Int).SetString(rStr, 10)
-	s, _ := new(big.Int).SetString(sStr, 10)
+	r, ok := new(big.Int).SetString(rStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading rStr")
+	}
+	s, ok := new(big.Int).SetString(sStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("error while reading sStr")
+	}
 
 	return &elgamal.Sign{R: r, S: s}, nil
 }

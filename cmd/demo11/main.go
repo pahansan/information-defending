@@ -1,14 +1,13 @@
 package main
 
 import (
+	"crypto/sha1"
 	"flag"
 	"fmt"
 	"information-defending/internal/gost"
 	"log"
 	"math/big"
 	"os"
-
-	"github.com/ftomza/gogost/gost341194"
 )
 
 func main() {
@@ -16,15 +15,15 @@ func main() {
 	signCmd := flag.NewFlagSet("sign", flag.ExitOnError)
 	verifyCmd := flag.NewFlagSet("verify", flag.ExitOnError)
 
-	keyFile := generateCmd.String("key", "gost", "File to save GOST keys")
+	keyFile := generateCmd.String("key", "fips", "File to save FIPS keys")
 
 	signInput := signCmd.String("input", "", "Input file to sign")
 	signOutput := signCmd.String("output", "", "Output signature file (default: input.sig)")
-	signKey := signCmd.String("key", "gost", "GOST private key file")
+	signKey := signCmd.String("key", "fips", "FIPS private key file")
 
 	verifyInput := verifyCmd.String("input", "", "Input file to verify")
 	verifySig := verifyCmd.String("signature", "", "Signature file")
-	verifyKey := verifyCmd.String("key", "gost", "GOST public key file")
+	verifyKey := verifyCmd.String("key", "fips", "FIPS public key file")
 
 	if len(os.Args) < 2 {
 		printUsage()
@@ -61,15 +60,15 @@ func main() {
 
 func printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("  generate - generate GOST keys")
+	fmt.Println("  generate - generate FIPS keys")
 	fmt.Println("  sign     - sign a file")
 	fmt.Println("  verify   - verify a file signature")
 	fmt.Println("\nUse [command] -h for more information about a command")
 }
 
 func generateKeys(keyFile string) {
-	fmt.Println("Generating GOST keys...")
-	keys := gost.GenerateKeys(256)
+	fmt.Println("Generating FIPS keys...")
+	keys := gost.GenerateKeys(160)
 
 	err := saveKeys(keys, keyFile)
 	if err != nil {
@@ -79,7 +78,7 @@ func generateKeys(keyFile string) {
 	fmt.Printf("Keys saved to %s.pub and %s.priv\n", keyFile, keyFile)
 	fmt.Printf("Prime Q (%d bits): %s\n", keys.Q.BitLen(), keys.Q.String())
 	fmt.Printf("Prime P (%d bits): %s\n", keys.P.BitLen(), keys.P.String())
-	fmt.Printf("Generator A: %s\n", keys.A.String())
+	fmt.Printf("A: %s\n", keys.A.String())
 	fmt.Printf("Private key X: %s\n", keys.X.String())
 	fmt.Printf("Public key Y: %s\n", keys.Y.String())
 }
@@ -97,11 +96,8 @@ func signFile(inputFile, outputFile, keyFile string) {
 		log.Fatalf("Error reading file: %v", err)
 	}
 
-	// Hash
-	hasher := gost341194.New(gost341194.SboxDefault)
-	hasher.Write(data)
-	hash := hasher.Sum(nil)
-	h := new(big.Int).SetBytes(hash)
+	hash := sha1.Sum([]byte(data))
+	h := new(big.Int).SetBytes(hash[:])
 
 	// Gen (r, s)
 	var r, s *big.Int
@@ -118,11 +114,12 @@ func signFile(inputFile, outputFile, keyFile string) {
 			continue
 		}
 
-		// s = (kh + xr) mod q
-		kh := new(big.Int).Mul(k, h)
+		// s = k^(-1) (h + xr) mod q
+		k_inv := new(big.Int).ModInverse(k, privKey.Q)
 		xr := new(big.Int).Mul(privKey.X, r)
-		s = new(big.Int).Add(kh, xr)
-		s = s.Mod(s, privKey.Q)
+		h_xr := new(big.Int).Add(h, xr)
+		s = new(big.Int).Mul(k_inv, h_xr)
+		s.Mod(s, privKey.Q)
 
 		if s.Cmp(big.NewInt(0)) == 0 {
 			continue
@@ -184,20 +181,18 @@ func verifySignature(inputFile, signatureFile, keyFile string) {
 	}
 
 	// Hash
-	hasher := gost341194.New(gost341194.SboxDefault)
-	hasher.Write(data)
-	hash := hasher.Sum(nil)
-	h := new(big.Int).SetBytes(hash)
+	hash := sha1.Sum([]byte(data))
+	h := new(big.Int).SetBytes(hash[:])
 
 	// 3.
-	// 	u1 = s * h^-1 mod q
-	//  u2 = -r * h^-1 mod q
-	hInv := new(big.Int).ModInverse(h, pubKey.Q)
+	// 	u1 = h * s^-1 mod q
+	//  u2 = r * s^-1 mod q
+	sInv := new(big.Int).ModInverse(s, pubKey.Q)
 
-	u1 := new(big.Int).Mul(s, hInv)
+	u1 := new(big.Int).Mul(h, sInv)
 	u1.Mod(u1, pubKey.Q)
 
-	u2 := new(big.Int).Mul(new(big.Int).Neg(r), hInv)
+	u2 := new(big.Int).Mul(r, sInv)
 	u2.Mod(u2, pubKey.Q)
 
 	// 4.

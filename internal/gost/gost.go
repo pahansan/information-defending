@@ -92,8 +92,8 @@ func GenerateLessThanNotZero(q *big.Int) (*big.Int, error) {
 	return a, nil
 }
 
-func GenerateKeys() Keys {
-	Q, err := generatePrime(256)
+func GenerateKeys(qBits int) Keys {
+	Q, err := generatePrime(qBits)
 	if err != nil {
 		log.Fatalf("Something went wrong: %s", err.Error())
 	}
